@@ -1,18 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecipes } from '../hooks/useRecipes';
 import RecipeCard from '../components/RecipeCard';
+import { SearchBar } from '../components/SearchBar';
+import type { Recipe } from '../types/Recipe';
 
 const HomePage: React.FC = () => {
   const { recetas } = useRecipes();
+  // Estado local para resultados de búsqueda
+  const [searchResults, setSearchResults] = useState<Recipe[]>(recetas);
 
-  // Obtener las recetas más valoradas (top 3)
-  const recetasDestacadas = recetas
+  // Sincronizar cuando cambian las recetas
+  useEffect(() => {
+    setSearchResults(recetas);
+  }, [recetas]);
+
+  // Función que maneja la búsqueda por nombre
+  const handleSearch = (query: string) => {
+    if (!query) {
+      setSearchResults(recetas);
+    } else {
+      const lower = query.toLowerCase();
+      setSearchResults(
+        recetas.filter(r => r.nombre.toLowerCase().includes(lower))
+      );
+    }
+  };
+
+  // Recetas destacadas y rápidas sobre los resultados filtrados
+  const recetasDestacadas = [...searchResults]
     .sort((a, b) => b.valoracion - a.valoracion)
     .slice(0, 3);
 
-  // Obtener recetas rápidas (menos de 20 minutos)
-  const recetasRapidas = recetas
+  const recetasRapidas = searchResults
     .filter(receta => receta.tiempo <= 20)
     .slice(0, 3);
 
@@ -35,11 +55,18 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="featured-section">
+      {/* Search Bar */}
+      <section className="search-section container mt-4">
+        <SearchBar onSearch={handleSearch} />
+      </section>
+
+      <section className="featured-section container mt-4">
         <h2 className="section-title">⭐ Recetas Más Valoradas</h2>
-        <div className="recipes-grid">
+        <div className="recipes-grid row">
           {recetasDestacadas.map(receta => (
-            <RecipeCard key={receta.id} recipe={receta} />
+            <div key={receta.id} className="col-md-4 mb-3">
+              <RecipeCard recipe ={receta} />
+            </div>
           ))}
         </div>
         <div className="section-footer">
@@ -49,31 +76,38 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="quick-section">
+      <section className="quick-section container mt-4">
         <h2 className="section-title">⚡ Recetas Rápidas</h2>
         <p className="section-subtitle">Perfectas para cuando tienes poco tiempo</p>
-        <div className="recipes-grid">
+        <div className="recipes-grid row">
           {recetasRapidas.map(receta => (
-            <RecipeCard key={receta.id} recipe={receta} />
+            <div key={receta.id} className="col-md-4 mb-3">
+              <RecipeCard recipe ={receta} />
+            </div>
           ))}
         </div>
       </section>
 
-      <section className="stats-section">
-        <div className="stats-container">
-          <div className="stat-item">
-            <span className="stat-number">{recetas.length}</span>
+      <section className="stats-section container mt-4">
+        <div className="stats-container d-flex justify-content-around">
+          <div className="stat-item text-center">
+            <span className="stat-number">{searchResults.length}</span>
             <span className="stat-label">Recetas</span>
           </div>
-          <div className="stat-item">
+          <div className="stat-item text-center">
             <span className="stat-number">
-              {Math.round(recetas.reduce((acc, r) => acc + r.tiempo, 0) / recetas.length)}
+              {searchResults.length > 0
+                ? Math.round(
+                    searchResults.reduce((acc, r) => acc + r.tiempo, 0) /
+                      searchResults.length
+                  )
+                : 0}
             </span>
             <span className="stat-label">Min Promedio</span>
           </div>
-          <div className="stat-item">
+          <div className="stat-item text-center">
             <span className="stat-number">
-              {recetas.filter(r => r.dificultad === 'fácil').length}
+              {searchResults.filter(r => r.dificultad === 'fácil').length}
             </span>
             <span className="stat-label">Recetas Fáciles</span>
           </div>
